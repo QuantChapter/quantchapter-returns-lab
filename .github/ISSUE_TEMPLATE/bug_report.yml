@@ -1,0 +1,38 @@
+name: Bug report
+description: Report an incorrect calculation, input-validation problem, or reproducibility failure.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For exploitable security concerns, use the private reporting route in SECURITY.md.
+        Please use synthetic inputs and exclude credentials and private data.
+  - type: input
+    id: version
+    attributes:
+      label: Version and environment
+      description: Package version, Python version, and operating system.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the command or small program and synthetic inputs.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result and calculation
+      description: State the expected behavior and how you checked it independently.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include the output or relevant error without personal data or local paths.
+    validations:
+      required: true

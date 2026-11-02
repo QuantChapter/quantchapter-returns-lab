@@ -1,0 +1,20 @@
+{
+  "algorithm": "32-bit LCG, integer basis-point moves, floor to six decimal places",
+  "currency": "arbitrary teaching units",
+  "dataset": "synthetic_prices.csv",
+  "dates": "Weekdays from 2024-01-02; ignores exchange holidays",
+  "generator": "tools/generate_data.py",
+  "initial_price": "100.000000",
+  "license": "MIT",
+  "limitations": "Not observed market prices or investment results. The engineered shocks and pseudo-random moves are a teaching construction, not a calibrated financial model.",
+  "observations": 261,
+  "schema_version": 1,
+  "seed": 982451653,
+  "sha256": "a30adc3e1f7784148df332ca557a6175530e68eaa7cf4ede5d5e33c3a9a722bc",
+  "source": "Original synthetic teaching data authored for QuantChapter Returns Lab",
+  "stress_moves_basis_points": {
+    "170": 800,
+    "80": -1100,
+    "81": -600
+  }
+}

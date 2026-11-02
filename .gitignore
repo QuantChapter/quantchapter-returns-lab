@@ -1,0 +1,36 @@
+# Environments and local interpreter configuration
+.venv/
+.venv-*/
+.python-version
+.env
+.env.*
+!.env.example
+
+# Python caches, analysis caches and build outputs
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+build/
+dist/
+.ipynb_checkpoints/
+
+# Local reports and review artifacts
+artifacts/
+.release-check/
+.notebook-check/
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp

@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: "1"
+  UV_VERSION: "0.10.0"
+
+jobs:
+  quality:
+    name: Quality and dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+          enable-cache: false
+      - run: uv sync --locked --all-extras --dev
+      - run: uv run --frozen ruff check .
+      - run: uv run --frozen ruff format --check .
+      - run: uv run --frozen mypy
+      - run: uv run --frozen python tools/generate_data.py --check
+      - run: uv run --frozen pip-audit --skip-editable
+
+  tests:
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.14"]
+        include:
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: ubuntu-latest
+            python: "3.13"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ matrix.python }}
+          enable-cache: false
+      - run: uv sync --locked --no-dev --group test
+      - run: uv run --frozen --no-dev --group test pytest
+
+  notebooks:
+    name: Executed teaching examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+          enable-cache: false
+      - run: uv sync --locked --all-extras --dev
+      - run: uv run --frozen python tools/verify_notebooks.py
+
+  package:
+    name: Build and installed-wheel smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+          enable-cache: false
+      - run: uv sync --locked --no-dev --group quality
+      - name: Build against the locked backend
+        run: uv build --no-build-isolation
+      - run: uv run --frozen --no-dev --group quality python -m twine check --strict dist/*
+      - name: Install and run from outside the checkout
+        shell: bash
+        run: |
+          uv run --frozen --no-dev --group quality python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          import venv
+
+          wheels = list(Path("dist").resolve().glob("*.whl"))
+          assert len(wheels) == 1, "Expected one built wheel"
+          with tempfile.TemporaryDirectory() as directory:
+              root = Path(directory)
+              environment = root / "venv"
+              venv.EnvBuilder(with_pip=True).create(environment)
+              scripts = environment / ("Scripts" if os.name == "nt" else "bin")
+              python = scripts / ("python.exe" if os.name == "nt" else "python")
+              cli = scripts / ("quantchapter-returns.exe" if os.name == "nt" else "quantchapter-returns")
+              subprocess.run(
+                  [str(python), "-I", "-m", "pip", "install", "--no-deps", str(wheels[0])],
+                  cwd=root, check=True,
+              )
+              subprocess.run(
+                  [str(python), "-I", "-c",
+                   "import math; from quantchapter_returns import simple_returns; "
+                   "r = simple_returns([100, 110, 99]); "
+                   "assert math.isclose(r[0], 0.1, abs_tol=1e-14); "
+                   "assert math.isclose(r[1], -0.1, abs_tol=1e-14)"],
+                  cwd=root, check=True,
+              )
+              source = root / "prices.csv"
+              source.write_text("date,price\n2024-01-02,100\n2024-01-03,110\n2024-01-04,99\n", encoding="utf-8")
+              report = root / "report.json"
+              subprocess.run([str(cli), "--version"], cwd=root, check=True)
+              subprocess.run(
+                  [str(cli), "report", str(source), "--output", str(report)],
+                  cwd=root, check=True,
+              )
+              assert isinstance(json.loads(report.read_text(encoding="utf-8")), dict)
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14

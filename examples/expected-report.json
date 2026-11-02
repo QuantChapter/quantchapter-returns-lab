@@ -1,0 +1,28 @@
+{
+  "annualized_volatility": 0.2210648922546198,
+  "conventions": {
+    "drawdown_sign": "nonpositive",
+    "excludes": [
+      "dividends",
+      "fees",
+      "taxes",
+      "cash flows",
+      "currency conversion"
+    ],
+    "frequency": "caller-supplied; calendar regularity is not inferred",
+    "purpose": "educational descriptive analysis; not a forecast or investment advice",
+    "return_type": "price-only simple returns",
+    "units": "decimal fractions"
+  },
+  "ddof": 1,
+  "first_date": "2024-01-02",
+  "input_sha256": "a30adc3e1f7784148df332ca557a6175530e68eaa7cf4ede5d5e33c3a9a722bc",
+  "last_date": "2024-12-31",
+  "maximum_drawdown": -0.3477608772060982,
+  "observations": 261,
+  "package_version": "0.1.0",
+  "periods_per_year": 252,
+  "return_observations": 260,
+  "schema_version": 1,
+  "total_return": -0.07115120000000004
+}
